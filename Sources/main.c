@@ -1,10 +1,14 @@
 #include "MPC5604B.h"
+#include "IntcInterrupts.h"
+#include "typedefs.h"
+#include "MPC5604B.h"
 
 #define D0 SIU.GPDO[12].B.PDO
 #define D1 SIU.GPDO[13].B.PDO
 #define D2 SIU.GPDO[14].B.PDO
 #define D3 SIU.GPDO[15].B.PDO
-
+unsigned int Line = 0;
+unsigned char SampleFlag = 0;
 void delay_us(unsigned long int us)
 {
 	volatile int i, j;
@@ -94,10 +98,10 @@ void enable_irq(void)
 
 void writereset(void)
 {
-	SIU.PCR[7].R = 0x0203;	// PA7 as WRST
-	SIU.GPDO[7].B.PDO=1; 
+	SIU.PCR[12].R = 0x0203;	// PA12 as WRST
+	SIU.GPDO[12].B.PDO=1; 
 	delay_us(150);
-	SIU.GPDO[7].B.PDO=0; 
+	SIU.GPDO[12].B.PDO=0; 
 	
 }
 void rck_high(void)
@@ -126,25 +130,86 @@ void oe_enable(void)
 	SIU.PCR[11].R = 0x0203;	// PA11 as OE
 	SIU.GPDO[11].B.PDO=0;   // OE enable
 }
-void init_fifoinit(void)
+void we_enable(void)
+{
+	SIU.PCR[10].R = 0x0203;	// PA10 as WE
+	SIU.GPDO[10].B.PDO=1;   //WE enable
+}
+void we_disable(void)
 {
 	SIU.PCR[10].R = 0x0203;	// PA10 as WE
 	SIU.GPDO[10].B.PDO=0;   //WE disable
+}
+void init_fifoinit(void)
+{
+	//SIU.PCR[10].R = 0x0203;	// PA10 as WE
+	//SIU.GPDO[10].B.PDO=0;   //WE disable
+	we_disable();
 	SIU.PCR[11].R = 0x0203;	// PA11 as OE
 	SIU.GPDO[11].B.PDO=1;   // OE disable
 	writereset();
 	readreset();
 }
+void FieldInputCapture(void)
+{
+	EMIOS_0.CH[3].CSR.B.FLAG = 1;//清场中断
+	EMIOS_0.CH[7].CSR.B.FLAG = 1;//清行中断
+	SampleFlag=1;
+	we_enable();
+	Line=0;	
+}
+void RowInputCapture(void)
+{
+	EMIOS_0.CH[7].CSR.B.FLAG = 1;//清行中断
+	Line++;
+	if ( SampleFlag == 0 ) 
+	{ 
+		return;
+	} 
+	if(Line==240)
+	{
+		writereset();
+		we_disable();
+		
+	}
+}
 
+/*----------------------------------------------------------------------*/
+/*视频信号场行中断初始                                             	 */
+/*----------------------------------------------------------------------*/
+void initEMIOS_0Image(void) 
+{ 
+	//PA3场中断捕捉上升沿及下降沿
+	EMIOS_0.CH[3].CCR.B.MODE = 0x02; // Mode is SAIC, continuous 
+	EMIOS_0.CH[3].CCR.B.BSL = 0x01; /* Use counter bus B (default) */
+	EMIOS_0.CH[3].CCR.B.EDSEL = 1;  //Both edges
+//	EMIOS_0.CH[3].CCR.B.EDPOL=1; //Edge Select falling edge
+//	EMIOS_0.CH[3].CCR.B.FEN=1;  //interupt enbale
+	SIU.PCR[3].R = 0x0102;  // Initialize pad for eMIOS channel Initialize pad for input 
+	INTC_InstallINTCInterruptHandler(FieldInputCapture,142,1);  
+	
+	//PA7行中断捕捉上升沿
+	EMIOS_0.CH[7].CCR.B.MODE = 0x02; // Mode is SAIC, continuous 
+	EMIOS_0.CH[7].CCR.B.BSL = 0x01; /* Use counter bus B (default) */
+	EMIOS_0.CH[7].CCR.B.EDSEL = 0;
+	EMIOS_0.CH[7].CCR.B.EDPOL=1; //Edge Select rising edge
+//	EMIOS_0.CH[7].CCR.B.FEN=1;  //interupt enbale
+	SIU.PCR[7].R = 0x0102;  // Initialize pad for eMIOS channel Initialize pad for input 
+	INTC_InstallINTCInterruptHandler(RowInputCapture,144,3); 
+	
+	//C10口二值化入口
+	SIU.PCR[42].R = 0x0102;  // C9口二值化入口
+}
 
-
-int main(void) {
+void main(void) {
   //volatile int i = 0;
 
   	//int flag = 1;
   	int i,j;
   	disable_watchdog();
   	init_modes_and_clock();
+  	enable_irq();
+  	initEMIOS_0Image();
   	init_fifoinit();
   	//init_all_and_POST();
   	//g_f_enable_speed_control=1;
