@@ -191,7 +191,7 @@ void initEMIOS_0Image(void)
 //	EMIOS_0.CH[3].CCR.B.EDPOL=1; //Edge Select falling edge
 	EMIOS_0.CH[3].CCR.B.FEN=1;  //interupt enbale
 	SIU.PCR[3].R = 0x0102;  // Initialize pad for eMIOS channel Initialize pad for input 
-	INTC_InstallINTCInterruptHandler(FieldInputCapture,142,3);  
+	INTC_InstallINTCInterruptHandler(FieldInputCapture,142,1);  
 	
 	//PA7行中断捕捉上升沿
 	EMIOS_0.CH[7].CCR.B.MODE = 0x02; // Mode is SAIC, continuous 
@@ -200,7 +200,7 @@ void initEMIOS_0Image(void)
 	EMIOS_0.CH[7].CCR.B.EDPOL=1; //Edge Select rising edge
 	EMIOS_0.CH[7].CCR.B.FEN=1;  //interupt enbale
 	SIU.PCR[7].R = 0x0102;  // Initialize pad for eMIOS channel Initialize pad for input 
-	INTC_InstallINTCInterruptHandler(RowInputCapture,144,1); 
+	INTC_InstallINTCInterruptHandler(RowInputCapture,144,3); 
 	
 	//C10口二值化入口
 	SIU.PCR[42].R = 0x0102;  // C9口二值化入口
