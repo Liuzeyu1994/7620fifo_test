@@ -179,12 +179,17 @@ void RowInputCapture(void)
 /*----------------------------------------------------------------------*/
 void initEMIOS_0Image(void) 
 { 
+	/* eMIOS0初始化80MHz分为10MHz */
+		EMIOS_0.MCR.B.GPRE= 7;	/* GPRE+1=分频系数；/* Divide 80 MHz sysclk by 7+1 = 8 for 10MHz eMIOS clk */
+		EMIOS_0.MCR.B.GPREN = 1;	/* Enable eMIOS clock */
+		EMIOS_0.MCR.B.GTBE = 1;   /* Enable global time base */
+		EMIOS_0.MCR.B.FRZ = 1;    /* Enable stopping channels when in debug mode */
 	//PA3场中断捕捉上升沿及下降沿
 	EMIOS_0.CH[3].CCR.B.MODE = 0x02; // Mode is SAIC, continuous 
 	EMIOS_0.CH[3].CCR.B.BSL = 0x01; /* Use counter bus B (default) */
 	EMIOS_0.CH[3].CCR.B.EDSEL = 1;  //Both edges
 //	EMIOS_0.CH[3].CCR.B.EDPOL=1; //Edge Select falling edge
-//	EMIOS_0.CH[3].CCR.B.FEN=1;  //interupt enbale
+	EMIOS_0.CH[3].CCR.B.FEN=1;  //interupt enbale
 	SIU.PCR[3].R = 0x0102;  // Initialize pad for eMIOS channel Initialize pad for input 
 	INTC_InstallINTCInterruptHandler(FieldInputCapture,142,3);  
 	
@@ -193,7 +198,7 @@ void initEMIOS_0Image(void)
 	EMIOS_0.CH[7].CCR.B.BSL = 0x01; /* Use counter bus B (default) */
 	EMIOS_0.CH[7].CCR.B.EDSEL = 0;
 	EMIOS_0.CH[7].CCR.B.EDPOL=1; //Edge Select rising edge
-//	EMIOS_0.CH[7].CCR.B.FEN=1;  //interupt enbale
+	EMIOS_0.CH[7].CCR.B.FEN=1;  //interupt enbale
 	SIU.PCR[7].R = 0x0102;  // Initialize pad for eMIOS channel Initialize pad for input 
 	INTC_InstallINTCInterruptHandler(RowInputCapture,144,1); 
 	
@@ -208,9 +213,9 @@ void main(void) {
   	int i,j;
   	disable_watchdog();
   	init_modes_and_clock();
-  	enable_irq();
   	initEMIOS_0Image();
   	init_fifoinit();
+  	enable_irq();
   	//init_all_and_POST();
   	//g_f_enable_speed_control=1;
   	//write_camera_data_to_TF();
@@ -219,7 +224,8 @@ void main(void) {
   //	SetupCCD();	
   	//g_f_enable_speed_control=0;
   	//g_f_enable_supersonic=1;
-  //	EMIOS_0.CH[3].CCR.B.FEN=1;//开场中断
+  	//EMIOS_0.CH[3].CCR.B.FEN=1;//开场中断
+  	//EMIOS_0.CH[7].CCR.B.FEN=1;  //开行中断
   //	LCD_write_english_string(96,0,"T");
 
 
