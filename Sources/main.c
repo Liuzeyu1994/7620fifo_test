@@ -96,27 +96,36 @@ void enable_irq(void)
   asm(" wrteei 1");	/* Enable external interrupts */
 }
 
+void init_all(void)
+{
+	SIU.PCR[8].R = 0x0203;	// PA8 as RRST
+	SIU.PCR[9].R = 0x0203;	// PA9 as RCK
+	SIU.PCR[10].R = 0x0203;	// PA10 as WE
+	SIU.PCR[11].R = 0x0203;	// PA11 as OE
+	SIU.PCR[12].R = 0x0203;	// PA12 as WRST
+}
+
 void writereset(void)
 {
-	SIU.PCR[12].R = 0x0203;	// PA12 as WRST
-	SIU.GPDO[12].B.PDO=1; 
+	
+	SIU.GPDO[12].B.PDO=0; //0 as wrst enable 
 	delay_us(150);
-	SIU.GPDO[12].B.PDO=0; 
+	SIU.GPDO[12].B.PDO=1; 
 	
 }
 void rck_high(void)
 {
-	SIU.PCR[9].R = 0x0203;	// PA9 as RCK
+	
 	SIU.GPDO[9].B.PDO=1; 
 }
 void rck_low(void)
 {
-	SIU.PCR[9].R = 0x0203;	// PA9 as RCK
+	//SIU.PCR[9].R = 0x0203;	// PA9 as RCK
 	SIU.GPDO[9].B.PDO=0; 
 }
 void readreset(void)
 {
-	SIU.PCR[8].R = 0x0203;	// PA8 as RRST
+	
 	SIU.GPDO[8].B.PDO=0;    //0 as RRST Enable
 	delay_us(150);
 	rck_high();
@@ -127,17 +136,17 @@ void readreset(void)
 }
 void oe_enable(void)
 {
-	SIU.PCR[11].R = 0x0203;	// PA11 as OE
+	
 	SIU.GPDO[11].B.PDO=0;   // OE enable
 }
 void we_enable(void)
 {
-	SIU.PCR[10].R = 0x0203;	// PA10 as WE
+	
 	SIU.GPDO[10].B.PDO=1;   //WE enable
 }
 void we_disable(void)
 {
-	SIU.PCR[10].R = 0x0203;	// PA10 as WE
+	//SIU.PCR[10].R = 0x0203;	// PA10 as WE
 	SIU.GPDO[10].B.PDO=0;   //WE disable
 }
 void init_fifoinit(void)
@@ -145,17 +154,18 @@ void init_fifoinit(void)
 	//SIU.PCR[10].R = 0x0203;	// PA10 as WE
 	//SIU.GPDO[10].B.PDO=0;   //WE disable
 	we_disable();
-	SIU.PCR[11].R = 0x0203;	// PA11 as OE
+	
 	SIU.GPDO[11].B.PDO=1;   // OE disable
 	writereset();
 	readreset();
 }
 void FieldInputCapture(void)
 {
+	//we_enable();
+	SIU.GPDO[10].B.PDO=1;   //WE enable
 	EMIOS_0.CH[3].CSR.B.FLAG = 1;//清场中断
 	EMIOS_0.CH[7].CSR.B.FLAG = 1;//清行中断
 	SampleFlag=1;
-	we_enable();
 	Line=0;	
 }
 void RowInputCapture(void)
@@ -168,8 +178,12 @@ void RowInputCapture(void)
 	} 
 	if(Line==240)
 	{
-		writereset();
-		we_disable();
+		//writereset();
+		SIU.GPDO[12].B.PDO=1; 
+		delay_us(150);
+		SIU.GPDO[12].B.PDO=0; 
+		//we_disable();
+		SIU.GPDO[10].B.PDO=0;   //WE disable
 		
 	}
 }
@@ -213,6 +227,7 @@ void main(void) {
   	int i,j;
   	disable_watchdog();
   	init_modes_and_clock();
+  	init_all();
   	initEMIOS_0Image();
   	init_fifoinit();
   	enable_irq();
@@ -240,7 +255,7 @@ void main(void) {
   			for(j=0;j<640;j++)
   			{
   				rck_high();
-  				//delay_us(150);
+  				delay_us(150);
   				rck_low();
   				//delay_us(150);
   			}
