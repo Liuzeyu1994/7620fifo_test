@@ -179,9 +179,9 @@ void RowInputCapture(void)
 	if(Line==240)
 	{
 		//writereset();
-		SIU.GPDO[12].B.PDO=1; 
+		SIU.GPDO[12].B.PDO=0; //WRST enable
 		delay_us(150);
-		SIU.GPDO[12].B.PDO=0; 
+		SIU.GPDO[12].B.PDO=1; //WRST disable
 		//we_disable();
 		SIU.GPDO[10].B.PDO=0;   //WE disable
 		
